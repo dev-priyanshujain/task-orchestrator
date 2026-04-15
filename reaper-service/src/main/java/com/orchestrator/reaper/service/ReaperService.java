@@ -87,9 +87,9 @@ public class ReaperService {
         ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.scheduleAtFixedRate(() -> {
             try {
-                Duration ttl = Duration.ofMillis(leaderTtlMs);
-                java.util.Objects.requireNonNull(ttl, "ttl cannot be null");
-                redisTemplate.expire(LEADER_KEY, ttl);
+                Duration extensionTtl = Duration.ofMillis(leaderTtlMs);
+                java.util.Objects.requireNonNull(extensionTtl, "extensionTtl cannot be null");
+                redisTemplate.expire(LEADER_KEY, extensionTtl);
                 log.debug("Reaper leader lock extended");
             } catch (Exception e) {
                 log.warn("Failed to extend reaper leader lock");

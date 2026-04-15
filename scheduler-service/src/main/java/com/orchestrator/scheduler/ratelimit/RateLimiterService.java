@@ -68,12 +68,16 @@ public class RateLimiterService {
             java.util.Objects.requireNonNull(rateLimitScript, "rateLimitScript cannot be null");
             List<String> keys = Collections.singletonList(redisKey);
             java.util.Objects.requireNonNull(keys, "keys cannot be null");
+            String limitStr = String.valueOf(maxRequests);
+            String windowStr = String.valueOf(windowSeconds);
+            java.util.Objects.requireNonNull(limitStr, "limitStr cannot be null");
+            java.util.Objects.requireNonNull(windowStr, "windowStr cannot be null");
 
             List<?> result = redisTemplate.execute(
-                    rateLimitScript,
+                    (org.springframework.data.redis.core.script.RedisScript<List>) rateLimitScript,
                     keys,
-                    String.valueOf(maxRequests),
-                    String.valueOf(windowSeconds)
+                    limitStr,
+                    windowStr
             );
 
             if (result == null || result.size() < 2) {

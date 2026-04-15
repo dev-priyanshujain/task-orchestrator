@@ -54,6 +54,8 @@ public class KafkaProducerConfig {
 
     @Bean
     public KafkaTemplate<String, TaskEvent> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+        ProducerFactory<String, TaskEvent> pf = producerFactory();
+        java.util.Objects.requireNonNull(pf, "producerFactory cannot be null");
+        return new KafkaTemplate<>(pf);
     }
 }

@@ -158,7 +158,9 @@ public class TaskExecutorService {
 
                 // Step 5: Mark SUCCESS + set execution idempotency key
                 taskStatusService.updateTaskStatus(event.getTaskId(), TaskStatus.SUCCESS, null);
-                redisTemplate.opsForValue().set(execKey, "1", Duration.ofDays(1));
+                Duration ttl = Duration.ofDays(1);
+                java.util.Objects.requireNonNull(ttl, "ttl cannot be null");
+                redisTemplate.opsForValue().set(execKey, "1", ttl);
 
                 // Audit: RUNNING → SUCCESS
                 auditService.log(event.getTaskId(), TaskStatus.RUNNING, TaskStatus.SUCCESS,
@@ -277,7 +279,10 @@ public class TaskExecutorService {
             log.warn("Task exhausted retries, sending to DLQ: taskId={}, retries={}",
                     event.getTaskId(), newRetryCount);
             taskStatusService.updateTaskStatus(event.getTaskId(), TaskStatus.DEAD, reason);
-            kafkaTemplate.send(dlqTopic, event.getTaskId().toString(), event);
+            java.util.Objects.requireNonNull(dlqTopic, "dlqTopic cannot be null");
+            String eventTid = event.getTaskId().toString();
+            java.util.Objects.requireNonNull(eventTid, "eventTid cannot be null");
+            kafkaTemplate.send(dlqTopic, eventTid, event);
 
             // Audit: RUNNING → DEAD
             auditService.log(event.getTaskId(), TaskStatus.RUNNING, TaskStatus.DEAD,
@@ -312,7 +317,10 @@ public class TaskExecutorService {
                     .scheduledAt(Instant.now().plusMillis(delay))
                     .build();
 
-            kafkaTemplate.send(tasksTopic, event.getTaskId().toString(), retryEvent);
+            java.util.Objects.requireNonNull(tasksTopic, "tasksTopic cannot be null");
+            String retryTid = event.getTaskId().toString();
+            java.util.Objects.requireNonNull(retryTid, "retryTid cannot be null");
+            kafkaTemplate.send(tasksTopic, retryTid, retryEvent);
         }
     }
 

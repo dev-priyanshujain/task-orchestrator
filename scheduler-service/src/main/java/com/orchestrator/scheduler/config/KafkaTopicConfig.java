@@ -31,6 +31,7 @@ public class KafkaTopicConfig {
 
     @Bean
     public NewTopic taskEventsTopic() {
+        java.util.Objects.requireNonNull(tasksTopic, "tasksTopic cannot be null");
         return TopicBuilder.name(tasksTopic)
                 .partitions(partitions)
                 .replicas(replicationFactor)
@@ -41,6 +42,7 @@ public class KafkaTopicConfig {
 
     @Bean
     public NewTopic dlqTopic() {
+        java.util.Objects.requireNonNull(dlqTopic, "dlqTopic cannot be null");
         return TopicBuilder.name(dlqTopic)
                 .partitions(3)
                 .replicas(replicationFactor)

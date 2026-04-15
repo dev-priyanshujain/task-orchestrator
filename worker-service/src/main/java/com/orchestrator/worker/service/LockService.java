@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Redis-based distributed lock service.
@@ -59,9 +61,14 @@ public class LockService {
      * @return true if lock was acquired, false if already held by another worker
      */
     public boolean acquireLock(String taskId, String workerId) {
+        java.util.Objects.requireNonNull(taskId, "taskId cannot be null");
+        java.util.Objects.requireNonNull(workerId, "workerId cannot be null");
         String key = LOCK_PREFIX + taskId;
+        java.util.Objects.requireNonNull(key, "key cannot be null");
+        Duration ttl = Duration.ofMillis(lockTtlMs);
+        java.util.Objects.requireNonNull(ttl, "ttl cannot be null");
         Boolean result = redisTemplate.opsForValue()
-                .setIfAbsent(key, workerId, Duration.ofMillis(lockTtlMs));
+                .setIfAbsent(key, workerId, ttl);
         
         if (result == null) result = false;
         boolean acquired = Boolean.TRUE.equals(result);
@@ -83,14 +90,16 @@ public class LockService {
         String key = LOCK_PREFIX + taskId;
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(UNLOCK_SCRIPT, Long.class);
 
-        Long result = redisTemplate.execute(script, Collections.singletonList(key), workerId);
-        if (result == null) result = 0L;
-        boolean released = result == 1L;
+        List<String> keys = Collections.singletonList(key);
+        Objects.requireNonNull(keys, "keys cannot be null");
+
+        Long result = redisTemplate.execute(script, keys, workerId);
+        boolean released = result != null && result == 1L;
 
         if (released) {
             log.debug("Lock released: taskId={}, workerId={}", taskId, workerId);
         } else {
-            log.warn("Failed to release lock (not owner): taskId={}, workerId={}", taskId, workerId);
+            log.debug("Failed to release lock (not owner or expired): taskId={}, workerId={}", taskId, workerId);
         }
         return released;
     }
@@ -105,15 +114,17 @@ public class LockService {
         String key = LOCK_PREFIX + taskId;
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(RENEW_SCRIPT, Long.class);
 
-        Long result = redisTemplate.execute(script, Collections.singletonList(key),
+        List<String> keys = Collections.singletonList(key);
+        Objects.requireNonNull(keys, "keys cannot be null");
+
+        Long result = redisTemplate.execute(script, keys,
                 workerId, String.valueOf(lockTtlMs));
-        if (result == null) result = 0L;
-        boolean renewed = result == 1L;
+        boolean renewed = result != null && result == 1L;
 
         if (renewed) {
             log.debug("Lock renewed: taskId={}, workerId={}, ttl={}ms", taskId, workerId, lockTtlMs);
         } else {
-            log.warn("Failed to renew lock (not owner or expired): taskId={}, workerId={}", taskId, workerId);
+            log.debug("Failed to renew lock (not owner or expired): taskId={}, workerId={}", taskId, workerId);
         }
         return renewed;
     }

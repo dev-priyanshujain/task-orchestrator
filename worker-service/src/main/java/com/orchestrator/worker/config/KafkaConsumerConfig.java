@@ -70,7 +70,9 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, TaskEvent> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, TaskEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        ConsumerFactory<String, TaskEvent> cf = consumerFactory();
+        java.util.Objects.requireNonNull(cf, "consumerFactory cannot be null");
+        factory.setConsumerFactory(cf);
         // Manual acknowledgment mode — offsets committed only after ack.acknowledge()
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         // Concurrency matches partition count for maximum parallelism
