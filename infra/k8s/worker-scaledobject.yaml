@@ -1,0 +1,21 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-scaledobject
+  labels:
+    app: worker-service
+spec:
+  scaleTargetRef:
+    name: worker-service
+  pollingInterval: 15
+  cooldownPeriod: 300
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka:9092
+        consumerGroup: worker-group
+        topic: task-events
+        lagThreshold: "50"
+        offsetResetPolicy: earliest

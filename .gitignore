@@ -1,0 +1,8 @@
+target/
+*.log
+.vscode/
+*.swp
+*.class
+.DS_Store
+replay_pid*
+hs_err_pid*

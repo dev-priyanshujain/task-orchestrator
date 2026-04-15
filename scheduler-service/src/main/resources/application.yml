@@ -1,0 +1,69 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: scheduler-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/task_orchestrator
+    username: orchestrator
+    password: orchestrator_secret
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis_secret
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: scheduler-service
+
+app:
+  kafka:
+    topic:
+      tasks: task-events
+      dlq: task-events-dlq
+      partitions: 12
+      replication-factor: 1
+  idempotency:
+    ttl-seconds: 86400
+  security:
+    jwt:
+      secret: dGhpcyBpcyBhIDI1NiBiaXQgc2VjcmV0IGtleSBmb3IgSldU  # base64 256-bit key (change in production)
+      expiration-ms: 3600000
+    api-key: dev-api-key-change-in-production
+  encryption:
+    key: VGhpc0lzQTMyQnl0ZUtleUZvclRhc2tPcmNoZXN0cmE=  # base64 32-byte AES key
+  rate-limit:
+    max-requests: 100
+    window-seconds: 60

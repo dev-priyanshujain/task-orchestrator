@@ -1,0 +1,73 @@
+server:
+  port: 8081
+  shutdown: graceful
+
+spring:
+  application:
+    name: worker-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/task_orchestrator
+    username: orchestrator
+    password: orchestrator_secret
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis_secret
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: worker-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.orchestrator.common.dto"
+        max.poll.interval.ms: 300000
+        max.poll.records: 10
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: worker-service
+
+
+app:
+  kafka:
+    topic:
+      tasks: task-events
+      dlq: task-events-dlq
+    concurrency: 6
+  lock:
+    ttl-ms: 30000
+    heartbeat-interval-ms: 10000
+  worker:
+    id: ${HOSTNAME:worker-1}
+  retry:
+    backoff-multiplier: 5
+    initial-delay-ms: 1000
+    max-delay-ms: 600000
+  encryption:
+    key: VGhpc0lzQTMyQnl0ZUtleUZvclRhc2tPcmNoZXN0cmE=  # base64 32-byte AES key

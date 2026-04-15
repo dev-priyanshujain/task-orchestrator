@@ -1,0 +1,52 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: reaper-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/task_orchestrator
+    username: orchestrator
+    password: orchestrator_secret
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis_secret
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    tags:
+      application: reaper-service
+
+app:
+  kafka:
+    topic:
+      tasks: task-events
+      dlq: task-events-dlq
+  reaper:
+    scan-interval-ms: 30000
+    heartbeat-threshold-ms: 60000
+    leader-ttl-ms: 45000
+    instance-id: ${HOSTNAME:reaper-1}
