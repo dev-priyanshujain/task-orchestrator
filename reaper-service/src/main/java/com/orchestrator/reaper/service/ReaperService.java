@@ -65,8 +65,12 @@ public class ReaperService {
     @Scheduled(fixedDelayString = "${app.reaper.scan-interval-ms}")
     public void reap() {
         // Leader election — only one reaper instance processes at a time
+        java.util.Objects.requireNonNull(instanceId, "instanceId cannot be null");
+        Duration ttl = Duration.ofMillis(leaderTtlMs);
+        java.util.Objects.requireNonNull(ttl, "ttl cannot be null");
+
         Boolean acquired = redisTemplate.opsForValue()
-                .setIfAbsent(LEADER_KEY, instanceId, Duration.ofMillis(leaderTtlMs));
+                .setIfAbsent(LEADER_KEY, instanceId, ttl);
         
         if (acquired == null) acquired = false;
 
@@ -83,7 +87,9 @@ public class ReaperService {
         ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.scheduleAtFixedRate(() -> {
             try {
-                redisTemplate.expire(LEADER_KEY, Duration.ofMillis(leaderTtlMs));
+                Duration ttl = Duration.ofMillis(leaderTtlMs);
+                java.util.Objects.requireNonNull(ttl, "ttl cannot be null");
+                redisTemplate.expire(LEADER_KEY, ttl);
                 log.debug("Reaper leader lock extended");
             } catch (Exception e) {
                 log.warn("Failed to extend reaper leader lock");
@@ -170,15 +176,18 @@ public class ReaperService {
 
         final TaskEvent finalEvent = event;
         final TaskEntity finalTask = task;
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        kafkaTemplate.send(tasksTopic, finalTask.getTaskId().toString(), finalEvent);
-                        log.info("Reaper dispatched task: taskId={}, retry={}", finalTask.getTaskId(), incrementRetry);
-                    }
-                }
-        );
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                java.util.Objects.requireNonNull(tasksTopic, "tasksTopic cannot be null");
+                                java.util.UUID tid = finalTask.getTaskId();
+                                java.util.Objects.requireNonNull(tid, "taskId cannot be null");
+                                kafkaTemplate.send(tasksTopic, tid.toString(), finalEvent);
+                                log.info("Reaper dispatched task: taskId={}, retry={}", tid, incrementRetry);
+                            }
+                        }
+                );
 
         if (incrementRetry) {
             // Audit: RUNNING → PENDING
@@ -212,15 +221,18 @@ public class ReaperService {
 
         final TaskEvent finalEvent = event;
         final TaskEntity finalTask = task;
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        kafkaTemplate.send(dlqTopic, finalTask.getTaskId().toString(), finalEvent);
-                        log.info("Reaper sent task to DLQ: taskId={}", finalTask.getTaskId());
-                    }
-                }
-        );
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                java.util.Objects.requireNonNull(dlqTopic, "dlqTopic cannot be null");
+                                java.util.UUID tid = finalTask.getTaskId();
+                                java.util.Objects.requireNonNull(tid, "taskId cannot be null");
+                                kafkaTemplate.send(dlqTopic, tid.toString(), finalEvent);
+                                log.info("Reaper sent task to DLQ: taskId={}", tid);
+                            }
+                        }
+                );
 
         // Audit: RUNNING → DEAD
         auditService.log(task.getTaskId(), TaskStatus.RUNNING, TaskStatus.DEAD,
