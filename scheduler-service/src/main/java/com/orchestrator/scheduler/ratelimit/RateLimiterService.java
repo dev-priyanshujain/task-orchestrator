@@ -65,9 +65,13 @@ public class RateLimiterService {
         String redisKey = "ratelimit:" + clientKey;
 
         try {
+            java.util.Objects.requireNonNull(rateLimitScript, "rateLimitScript cannot be null");
+            List<String> keys = Collections.singletonList(redisKey);
+            java.util.Objects.requireNonNull(keys, "keys cannot be null");
+
             List<?> result = redisTemplate.execute(
                     rateLimitScript,
-                    Collections.singletonList(redisKey),
+                    keys,
                     String.valueOf(maxRequests),
                     String.valueOf(windowSeconds)
             );
