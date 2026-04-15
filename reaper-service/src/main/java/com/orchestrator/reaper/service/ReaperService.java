@@ -21,7 +21,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Scheduled service that scans for stuck tasks and recovers them.
@@ -68,6 +67,8 @@ public class ReaperService {
         // Leader election — only one reaper instance processes at a time
         Boolean acquired = redisTemplate.opsForValue()
                 .setIfAbsent(LEADER_KEY, instanceId, Duration.ofMillis(leaderTtlMs));
+        
+        if (acquired == null) acquired = false;
 
         if (!Boolean.TRUE.equals(acquired)) {
             // Check if we are already the leader (re-entrant is not native, checking value)
@@ -130,7 +131,7 @@ public class ReaperService {
                 } else {
                     killTask(task);
                 }
-            } catch (Exception ex) {
+            } catch (IllegalArgumentException | IllegalStateException ex) {
                 log.error("Reaper failed to recover task: taskId={}, error={}",
                         task.getTaskId(), ex.getMessage(), ex);
             } finally {

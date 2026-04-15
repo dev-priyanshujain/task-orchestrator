@@ -3,7 +3,6 @@ package com.orchestrator.worker.service;
 import com.orchestrator.common.audit.AuditService;
 import com.orchestrator.common.dto.TaskEvent;
 import com.orchestrator.common.metrics.MetricsService;
-import com.orchestrator.common.model.TaskEntity;
 import com.orchestrator.common.model.TaskStatus;
 import com.orchestrator.common.model.TaskType;
 import com.orchestrator.common.util.EncryptionUtil;
@@ -174,7 +173,7 @@ public class TaskExecutorService {
 
                 return true;
 
-            } catch (Exception ex) {
+            } catch (IllegalArgumentException | IllegalStateException ex) {
                 if (Thread.interrupted()) {
                     log.error("Task execution aborted — lock lost: taskId={}", taskId);
                 } else {

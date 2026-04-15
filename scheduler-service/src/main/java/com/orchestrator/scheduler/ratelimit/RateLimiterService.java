@@ -26,6 +26,7 @@ public class RateLimiterService {
     private final StringRedisTemplate redisTemplate;
     private final int maxRequests;
     private final int windowSeconds;
+    @SuppressWarnings("rawtypes")
     private final DefaultRedisScript<List> rateLimitScript;
 
     public RateLimiterService(
@@ -49,7 +50,9 @@ public class RateLimiterService {
                 "local ttl = redis.call('TTL', key) " +
                 "return {current, ttl}";
 
-        this.rateLimitScript = new DefaultRedisScript<>(script, List.class);
+        this.rateLimitScript = new DefaultRedisScript<>();
+        this.rateLimitScript.setScriptText(script);
+        this.rateLimitScript.setResultType(List.class);
     }
 
     /**

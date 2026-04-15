@@ -16,6 +16,8 @@ public class TaskStatusService {
 
     @Transactional
     public void updateTaskStatus(UUID taskId, TaskStatus status, String failureReason) {
+        java.util.Objects.requireNonNull(taskId, "taskId cannot be null");
+        java.util.Objects.requireNonNull(status, "status cannot be null");
         taskRepository.findById(taskId).ifPresent(task -> {
             task.setStatus(status);
             task.setFailureReason(failureReason);
@@ -29,6 +31,7 @@ public class TaskStatusService {
 
     @Transactional
     public void updateTaskForRetry(UUID taskId, int retryCount, String failureReason) {
+        java.util.Objects.requireNonNull(taskId, "taskId cannot be null");
         taskRepository.findById(taskId).ifPresent(task -> {
             task.setRetryCount(retryCount);
             task.setStatus(TaskStatus.PENDING);

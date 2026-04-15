@@ -61,7 +61,8 @@ public class TaskService {
         if (existingTaskId != null) {
             log.info("Duplicate request detected for idempotencyKey={}, returning existing taskId={}",
                     idempotencyKey, existingTaskId);
-            TaskEntity existing = taskRepository.findById(UUID.fromString(existingTaskId))
+            java.util.UUID uuid = java.util.UUID.fromString(existingTaskId);
+            TaskEntity existing = taskRepository.findById(uuid)
                     .orElseThrow(() -> new RuntimeException("Task not found for cached idempotencyKey"));
             return toResponse(existing);
         }
@@ -91,7 +92,9 @@ public class TaskService {
                 .build();
 
         try {
-            task = taskRepository.save(task);
+            TaskEntity saved = taskRepository.save(task);
+            java.util.Objects.requireNonNull(saved, "Saved task cannot be null");
+            task = saved;
         } catch (DataIntegrityViolationException ex) {
             // Race condition: another request with the same idempotencyKey inserted between
             // our Redis check and this save. Fall back to DB lookup.
@@ -136,8 +139,11 @@ public class TaskService {
                         new org.springframework.transaction.support.TransactionSynchronization() {
                             @Override
                             public void afterCommit() {
-                                kafkaTemplate.send(tasksTopic, finalTask.getTaskId().toString(), finalEvent);
-                                log.info("Task event published to Kafka after transaction commit (imminent task): taskId={}", finalTask.getTaskId());
+                                java.util.Objects.requireNonNull(tasksTopic, "tasksTopic cannot be null");
+                                java.util.UUID tid = finalTask.getTaskId();
+                                java.util.Objects.requireNonNull(tid, "taskId cannot be null");
+                                kafkaTemplate.send(tasksTopic, tid.toString(), finalEvent);
+                                log.info("Task event published to Kafka after transaction commit (imminent task): taskId={}", tid);
                             }
                         }
                 );
@@ -147,7 +153,9 @@ public class TaskService {
             }
 
             // Step 6: Cache idempotency key in Redis
-            redisTemplate.opsForValue().set(redisKey, task.getTaskId().toString(),
+            java.util.UUID tid = task.getTaskId();
+            java.util.Objects.requireNonNull(tid, "taskId cannot be null");
+            redisTemplate.opsForValue().set(redisKey, tid.toString(),
                     Duration.ofSeconds(idempotencyTtlSeconds));
 
             return toResponse(task);
@@ -157,6 +165,7 @@ public class TaskService {
     }
 
     public TaskResponse getTask(UUID taskId) {
+        java.util.Objects.requireNonNull(taskId, "taskId cannot be null");
         TaskEntity task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found: " + taskId));
         return toResponse(task);
@@ -164,6 +173,7 @@ public class TaskService {
 
     @Transactional
     public void cancelTask(UUID taskId) {
+        java.util.Objects.requireNonNull(taskId, "taskId cannot be null");
         TaskEntity task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found: " + taskId));
 

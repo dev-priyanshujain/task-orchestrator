@@ -38,6 +38,7 @@ public class AuditService {
                 .reason(reason)
                 .build();
 
+        java.util.Objects.requireNonNull(entry, "Audit record cannot be null");
         auditLogRepository.save(entry);
         log.debug("Audit: taskId={} {} → {} by {} ({})", taskId, fromStatus, toStatus, actor, reason);
     }

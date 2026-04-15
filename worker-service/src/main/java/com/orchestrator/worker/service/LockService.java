@@ -62,7 +62,8 @@ public class LockService {
         String key = LOCK_PREFIX + taskId;
         Boolean result = redisTemplate.opsForValue()
                 .setIfAbsent(key, workerId, Duration.ofMillis(lockTtlMs));
-
+        
+        if (result == null) result = false;
         boolean acquired = Boolean.TRUE.equals(result);
         if (acquired) {
             log.debug("Lock acquired: taskId={}, workerId={}, ttl={}ms", taskId, workerId, lockTtlMs);
@@ -83,7 +84,8 @@ public class LockService {
         DefaultRedisScript<Long> script = new DefaultRedisScript<>(UNLOCK_SCRIPT, Long.class);
 
         Long result = redisTemplate.execute(script, Collections.singletonList(key), workerId);
-        boolean released = result != null && result == 1L;
+        if (result == null) result = 0L;
+        boolean released = result == 1L;
 
         if (released) {
             log.debug("Lock released: taskId={}, workerId={}", taskId, workerId);
@@ -105,7 +107,8 @@ public class LockService {
 
         Long result = redisTemplate.execute(script, Collections.singletonList(key),
                 workerId, String.valueOf(lockTtlMs));
-        boolean renewed = result != null && result == 1L;
+        if (result == null) result = 0L;
+        boolean renewed = result == 1L;
 
         if (renewed) {
             log.debug("Lock renewed: taskId={}, workerId={}, ttl={}ms", taskId, workerId, lockTtlMs);
